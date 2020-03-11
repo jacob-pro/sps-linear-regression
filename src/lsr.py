@@ -34,8 +34,26 @@ def view_data_segments(xs, ys):
     plt.show()
 
 
+def compute(file_path, plot):
+    (xs, ys) = load_points_from_file(file_path)
+
+
 def main(argv):
-    return ""
+    if len(argv) < 2 or len(argv) > 3:
+        print("Incorrect number of arguments")
+        exit(1)
+    file_path = argv[1]
+    if not os.path.isfile(file_path):
+        print("Invalid file path")
+        exit(1)
+    plot = False
+    if len(argv) == 3:
+        if argv[3] == "--plot":
+            plot = True
+        else:
+            print("Unrecognised argument")
+            exit(1)
+    compute(file_path, plot)
 
 
 if __name__ == "__main__":
