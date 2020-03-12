@@ -1,7 +1,8 @@
 import os
 import sys
 import pandas as pd
-import numpy as np
+import numpy
+from typing import *
 from matplotlib import pyplot as plt
 
 
@@ -28,17 +29,33 @@ def view_data_segments(xs, ys):
     assert len(xs) % 20 == 0
     len_data = len(xs)
     num_segments = len_data // 20
-    colour = np.concatenate([[i] * 20 for i in range(num_segments)])
+    colour = numpy.concatenate([[i] * 20 for i in range(num_segments)])
     plt.set_cmap('Dark2')
     plt.scatter(xs, ys, c=colour)
     plt.show()
 
 
-def compute(file_path, plot):
+Points = Tuple[List[float], List[float]]
+
+
+def group_points_into_segments(xs: List[float], ys: List[float]) -> List[Points]:
+    assert len(xs) == len(ys)
+    assert len(xs) % 20 == 0
+    lines: int = len(xs) // 20
+    xs_split = numpy.split(numpy.array(xs), lines)
+    ys_split = numpy.split(numpy.array(ys), lines)
+    return list(map(lambda line: (xs_split[line], ys_split[line]), range(lines)))
+
+
+def compute(file_path: str, plot: bool):
     (xs, ys) = load_points_from_file(file_path)
+    grouped = group_points_into_segments(xs, ys)
+
+    if plot:
+        view_data_segments(xs, ys)
 
 
-def main(argv):
+def main(argv: List):
     if len(argv) < 2 or len(argv) > 3:
         print("Incorrect number of arguments")
         exit(1)
@@ -48,7 +65,7 @@ def main(argv):
         exit(1)
     plot = False
     if len(argv) == 3:
-        if argv[3] == "--plot":
+        if argv[2] == "--plot":
             plot = True
         else:
             print("Unrecognised argument")
