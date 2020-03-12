@@ -1,7 +1,7 @@
 import os
 import sys
 import pandas as pd
-import numpy
+import numpy as np
 from typing import *
 from matplotlib import pyplot as plt
 
@@ -29,7 +29,7 @@ def view_data_segments(xs, ys):
     assert len(xs) % 20 == 0
     len_data = len(xs)
     num_segments = len_data // 20
-    colour = numpy.concatenate([[i] * 20 for i in range(num_segments)])
+    colour = np.concatenate([[i] * 20 for i in range(num_segments)])
     plt.set_cmap('Dark2')
     plt.scatter(xs, ys, c=colour)
     plt.show()
@@ -42,20 +42,38 @@ def group_points_into_segments(xs: List[float], ys: List[float]) -> List[Points]
     assert len(xs) == len(ys)
     assert len(xs) % 20 == 0
     lines: int = len(xs) // 20
-    xs_split = numpy.split(numpy.array(xs), lines)
-    ys_split = numpy.split(numpy.array(ys), lines)
+    xs_split = np.split(np.array(xs), lines)
+    ys_split = np.split(np.array(ys), lines)
     return list(map(lambda line: (xs_split[line], ys_split[line]), range(lines)))
 
 
-def compute(file_path: str, plot: bool):
+def lsr_fn(xs: List[float], ys: List[float], fn: Callable):
+    x_e = np.column_stack((np.ones(len(xs)), fn(xs)))
+    v = np.linalg.inv(x_e.T.dot(x_e)).dot(x_e.T).dot(ys)
+    return v
+
+
+def lsr_polynomial(xs: List[float], ys: List[float], degree: int):
+    # x**0 = 1, creating the column of ones
+    columns = list(map(lambda i: list(map(lambda x: x**i, xs)), range(degree + 1)))
+    x_e = np.column_stack(columns)
+    v = np.linalg.inv(x_e.T.dot(x_e)).dot(x_e.T).dot(ys)
+    return v
+
+
+def compute(file_path: str, plot: bool) -> None:
     (xs, ys) = load_points_from_file(file_path)
-    grouped = group_points_into_segments(xs, ys)
+    segments = group_points_into_segments(xs, ys)
+
+    (xs1, ys1) = segments[0]
+    lsr_polynomial(xs1, ys1, 0)
+    lsr_fn(xs1, ys1, np.tan)
 
     if plot:
         view_data_segments(xs, ys)
 
 
-def main(argv: List):
+def main(argv: List) -> None:
     if len(argv) < 2 or len(argv) > 3:
         print("Incorrect number of arguments")
         exit(1)
