@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from typing import *
 from matplotlib import pyplot as plt
+from numpy import ndarray
 
 
 def load_points_from_file(filename):
@@ -35,10 +36,10 @@ def view_data_segments(xs, ys):
     plt.show()
 
 
-Points = Tuple[List[float], List[float]]
+Segment = Tuple[ndarray, ndarray]
 
 
-def group_points_into_segments(xs: List[float], ys: List[float]) -> List[Points]:
+def group_points_into_segments(xs: ndarray, ys: ndarray) -> List[Segment]:
     assert len(xs) == len(ys)
     assert len(xs) % 20 == 0
     lines: int = len(xs) // 20
@@ -47,17 +48,21 @@ def group_points_into_segments(xs: List[float], ys: List[float]) -> List[Points]
     return list(map(lambda line: (xs_split[line], ys_split[line]), range(lines)))
 
 
-def lsr_fn(xs: List[float], ys: List[float], fn: Callable):
+def lsr_fn(xs: ndarray, ys: ndarray, fn: Callable):
     x_e = np.column_stack((np.ones(len(xs)), fn(xs)))
     v = np.linalg.inv(x_e.T.dot(x_e)).dot(x_e.T).dot(ys)
     return v
 
 
-def lsr_polynomial(xs: List[float], ys: List[float], degree: int):
+def lsr_polynomial(xs: ndarray, ys: ndarray, degree: int):
     # x**0 = 1, creating the column of ones
     columns = list(map(lambda i: list(map(lambda x: x**i, xs)), range(degree + 1)))
     x_e = np.column_stack(columns)
     v = np.linalg.inv(x_e.T.dot(x_e)).dot(x_e.T).dot(ys)
+
+    a, b = v
+    y_hat = a + b * xs
+    e = np.sum((y_hat - ys) ** 2)
     return v
 
 
@@ -66,7 +71,7 @@ def compute(file_path: str, plot: bool) -> None:
     segments = group_points_into_segments(xs, ys)
 
     (xs1, ys1) = segments[0]
-    lsr_polynomial(xs1, ys1, 0)
+    lsr_polynomial(xs1, ys1, 1)
     lsr_fn(xs1, ys1, np.tan)
 
     if plot:
