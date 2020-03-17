@@ -5,6 +5,36 @@ import numpy as np
 from typing import *
 from matplotlib import pyplot as plt
 from numpy import ndarray
+from dataclasses import dataclass
+from abc import abstractmethod, ABC
+
+
+@dataclass()
+class LsrResult(ABC):
+    name: str
+    coefficients: ndarray
+    error: float
+    equation: str
+
+    @abstractmethod
+    def compute_for_x(self, x: ndarray) -> ndarray:
+        pass
+
+
+@dataclass()
+class LsrResultPoly(LsrResult):
+
+    def compute_for_x(self, x: ndarray) -> ndarray:
+        return np.polyval(np.flip(self.coefficients), x)
+
+
+@dataclass()
+class LsrResultFn(LsrResult):
+    function: Callable
+
+    def compute_for_x(self, x: ndarray) -> ndarray:
+        a, b = self.coefficients
+        return a + b * self.function(x)
 
 
 def load_points_from_file(filename: str) -> Tuple[ndarray, ndarray]:
@@ -18,7 +48,7 @@ def load_points_from_file(filename: str) -> Tuple[ndarray, ndarray]:
     return points[0].values, points[1].values
 
 
-def view_data_segments(xs, ys):
+def view_data_segments(xs: ndarray, ys: ndarray, lines: List[LsrResult]) -> None:
     """Visualises the input file with each segment plotted in a different colour.
     Args:
         xs : List/array-like of x co-ordinates.
@@ -33,6 +63,12 @@ def view_data_segments(xs, ys):
     colour = np.concatenate([[i] * 20 for i in range(num_segments)])
     plt.set_cmap('Dark2')
     plt.scatter(xs, ys, c=colour)
+
+    for idx, line in enumerate(lines):
+        x = np.linspace(xs[20 * idx], xs[20 * (idx + 1) - 1])
+        y = line.compute_for_x(x)
+        plt.plot(x, y, linestyle="solid")
+
     plt.show()
 
 
@@ -46,13 +82,6 @@ def group_points_into_segments(xs: ndarray, ys: ndarray) -> List[Segment]:
     xs_split = np.split(np.array(xs), lines)
     ys_split = np.split(np.array(ys), lines)
     return list(map(lambda line: (xs_split[line], ys_split[line]), range(lines)))
-
-
-class LsrResult(NamedTuple):
-    name: str
-    coefficients: ndarray
-    error: float
-    function: str
 
 
 # Float to string with prefixed sign
@@ -78,18 +107,19 @@ def lsr_fn(xs: ndarray, ys: ndarray, fn: Callable) -> LsrResult:
     y_hat = a + b * fn(xs)
     e = float(np.sum((y_hat - ys) ** 2))
     formatted = "{} {} * {}(x)".format(fts(a), fts(b), fn.__name__)[2:]
-    return LsrResult(fn.__name__, v, e, formatted)
+    return LsrResultFn(fn.__name__, v, e, formatted, fn)
 
 
-def lsr_polynomial(xs: ndarray, ys: ndarray, degree: int) -> LsrResult:
+def lsr_polynomial(xs: ndarray, ys: ndarray, degree: int) -> LsrResultPoly:
     # x**0 = 1, creating the column of ones
     columns = list(map(lambda i: list(map(lambda x: x**i, xs)), range(degree + 1)))
     x_e = np.column_stack(columns)
     v = np.linalg.inv(x_e.T.dot(x_e)).dot(x_e.T).dot(ys)
     y_hat = np.polyval(np.flip(v), xs)
     e = float(np.sum((y_hat - ys) ** 2))
+    fn_name = ["constant", "linear", "quadratic", "cubic"][degree] if degree <= 3 else "poly{}".format(degree)
     formatted = " ".join(map(lambda x: "{}{}".format(fts(v[x]), xv(x)), range(degree + 1)))[2:]
-    return LsrResult("polynomial", v, e, formatted)
+    return LsrResultPoly(fn_name, v, e, formatted)
 
 
 def compute(segments: List[Segment]) -> Tuple[List[LsrResult], float]:
@@ -138,7 +168,7 @@ def main(argv: List) -> None:
     lines, error = compute(segments)
     print(error)
     if plot:
-        view_data_segments(xs, ys)
+        view_data_segments(xs, ys, lines)
 
 
 if __name__ == "__main__":
