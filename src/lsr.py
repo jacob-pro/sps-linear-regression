@@ -8,6 +8,9 @@ from numpy import ndarray
 from dataclasses import dataclass
 from abc import abstractmethod, ABC
 
+POLYNOMIAL_DEGREE = 3
+UNKNOWN_FUNCTION = np.sin
+
 
 @dataclass()
 class LsrResult(ABC):
@@ -53,6 +56,7 @@ def view_data_segments(xs: ndarray, ys: ndarray, lines: List[LsrResult]) -> None
     Args:
         xs : List/array-like of x co-ordinates.
         ys : List/array-like of y co-ordinates.
+        lines: List of lines to plot
     Returns:
         None
     """
@@ -123,28 +127,15 @@ def lsr_polynomial(xs: ndarray, ys: ndarray, degree: int) -> LsrResultPoly:
 
 
 def compute(segments: List[Segment]) -> Tuple[List[LsrResult], float]:
-
-    max_poly = 4
-    bests: Dict[int, Tuple[List[LsrResult], float]] = {}
-
-    for degree in range(2, max_poly + 1):
-        temp = []
-        for (xs, ys) in segments:
-            results: List[LsrResult] = [
-                lsr_polynomial(xs, ys, 1),
-                lsr_polynomial(xs, ys, degree),
-                lsr_fn(xs, ys, np.sin),
-                lsr_fn(xs, ys, np.cos),
-                lsr_fn(xs, ys, np.tan),
-                lsr_fn(xs, ys, np.exp),
-                lsr_fn(xs, ys, np.reciprocal),
-                # lsr_fn(xs, ys, np.sqrt),
-            ]
-            temp.append(min(results, key=lambda r: r.error))
-        bests[degree] = (temp, sum(k.error for k in temp))
-
-    best = min(bests.values(), key=lambda b: b[1])
-    return best
+    bests = []
+    for (xs, ys) in segments:
+        results: List[LsrResult] = [
+            lsr_polynomial(xs, ys, 1),
+            lsr_polynomial(xs, ys, POLYNOMIAL_DEGREE),
+            lsr_fn(xs, ys, UNKNOWN_FUNCTION),
+        ]
+        bests.append(min(results, key=lambda r: r.error))
+    return bests, sum(k.error for k in bests)
 
 
 def main(argv: List) -> None:
