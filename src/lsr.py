@@ -45,6 +45,7 @@ def view_data_segments(xs: ndarray, ys: ndarray, lines: List[LsrResult]) -> None
         x = np.linspace(xs[20 * idx], xs[20 * (idx + 1) - 1])
         y = line.compute_for_x(x)
         plt.plot(x, y, linestyle="solid")
+        # print(line.name(), line.equation())
 
     plt.show()
 
@@ -99,8 +100,8 @@ class LsrResultPoly(LsrResult):
     coefficients: ndarray
 
     def name(self) -> str:
-        degree = len(self.coefficients)
-        return ["constant", "linear", "quadratic", "cubic"][degree] if degree <= 3 else "poly{}".format(degree)
+        degree = len(self.coefficients) - 1
+        return ["constant", "linear", "quadratic", "cubic"][degree] if degree < 4 else "poly{}".format(degree)
 
     def compute_for_x(self, x: ndarray) -> ndarray:
         return np.polyval(np.flip(self.coefficients), x)
@@ -111,13 +112,13 @@ class LsrResultPoly(LsrResult):
         if x == 0:
             return ''
         elif x == 1:
-            return " * x"
+            return "*x"
         else:
-            return " * x^{}".format(x)
+            return "*x^{}".format(x)
 
     def equation(self) -> str:
         return " ".join(map(lambda x: "{}{}".format(self.fts(self.coefficients[x]), self.xv(x)),
-                            range(len(self.coefficients) + 1)))[2:]
+                            range(len(self.coefficients))))[2:]
 
 
 @dataclass()
