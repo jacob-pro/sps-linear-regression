@@ -9,7 +9,7 @@ from numpy import ndarray
 from dataclasses import dataclass
 from abc import abstractmethod, ABC
 
-POLYNOMIAL_DEGREE = 3
+POLYNOMIAL_DEGREE = 2
 UNKNOWN_FUNCTION = np.sin
 K_FOLD = 4
 
@@ -46,7 +46,7 @@ def view_data_segments(xs: ndarray, ys: ndarray, lines: List[LsrResult]) -> None
         x = np.linspace(xs[20 * idx], xs[20 * (idx + 1) - 1])
         y = line.compute_for_x(x)
         plt.plot(x, y, linestyle="solid")
-        print(line.name(), line.equation())
+        # print(line.name(), line.equation())
 
     plt.show()
 
@@ -156,7 +156,7 @@ class Segment:
         y: float
 
     @classmethod
-    def from_points(cls, points: List[Point]):
+    def from_points(cls, points: ndarray):
         xs = np.asarray(list(map(lambda p: p.x, points)))
         ys = np.asarray(list(map(lambda p: p.y, points)))
         return Segment(xs, ys)
@@ -250,9 +250,26 @@ def main(argv: List) -> None:
 
 
 def evaluate_training_data() -> None:
-    candidate_functions = [np.sin, np.tan, np.reciprocal, np.exp, np.square]
+    # Get all line segments from all training files
+    training_files = list(filter(lambda x: x.endswith(".csv"), os.listdir("train_data")))
+    all_segments: List[Segment] = []
+    for f in training_files:
+        (xs, ys) = load_points_from_file("train_data/{}".format(f))
+        all_segments.extend(group_points_into_segments(xs, ys))
+
+    candidate_functions = [np.sin, np.cos, np.tan, np.reciprocal, np.exp, np.square, np.sqrt]
     candidate_polynomials = range(2, 6)
+
+    results = []
+    for f in candidate_functions:
+        for p in candidate_polynomials:
+            result = compute(all_segments, p, f)
+            results.append((result.total_cv_error, p, f))
+    results.sort(key= lambda x: x[0])
+    for r in results:
+        print("Total CV Error: {}, Polynomial Degree: {}, Function: {}".format(r[0], r[1], r[2].__name__))
 
 
 if __name__ == "__main__":
+    # evaluate_training_data()
     main(sys.argv)
