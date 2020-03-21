@@ -11,6 +11,7 @@ from abc import abstractmethod, ABC
 
 POLYNOMIAL_DEGREE = 3
 UNKNOWN_FUNCTION = np.sin
+K_FOLD = 4
 
 
 def load_points_from_file(filename: str) -> Tuple[ndarray, ndarray]:
@@ -45,7 +46,7 @@ def view_data_segments(xs: ndarray, ys: ndarray, lines: List[LsrResult]) -> None
         x = np.linspace(xs[20 * idx], xs[20 * (idx + 1) - 1])
         y = line.compute_for_x(x)
         plt.plot(x, y, linestyle="solid")
-        # print(line.name(), line.equation())
+        print(line.name(), line.equation())
 
     plt.show()
 
@@ -164,14 +165,14 @@ class Segment:
         return list(map(lambda i: (Segment.Point(self.xs[i], self.ys[i])), range(len(self.xs))))
 
     def split(self, k: int) -> List[SplitSegment]:
-        points: List[Segment.Point] = self.to_points()
+        points: ndarray = np.asarray(self.to_points())
         validation_size = len(points) // k
         split_segments: List[SplitSegment] = []
         for i in range(k):
             validation = points[:validation_size]
             training = points[validation_size:]
             split_segments.append(SplitSegment(Segment.from_points(training), Segment.from_points(validation)))
-            np.roll(points, validation_size)
+            points = np.roll(points, validation_size)
         return split_segments
 
     def lsr_fn(self, fn: Callable) -> LsrResult:
@@ -202,17 +203,26 @@ class Segment:
         return ValidatedLsrResult(fn(self), avg_error)
 
 
-def compute(segments: List[Segment]) -> Tuple[List[LsrResult], float]:
+@dataclass()
+class BestFitResult:
+    lines: List[LsrResult]
+    total_ss_error: float
+    total_cv_error: float
+
+
+def compute(segments: List[Segment], poly_degree: int, unknown_fn: Callable) -> BestFitResult:
     bests: List[ValidatedLsrResult] = []
     for s in segments:
         results: List[ValidatedLsrResult] = [
-            s.cross_validated(4, lambda x: x.lsr_polynomial(1)),
-            s.cross_validated(4, lambda x: x.lsr_polynomial(POLYNOMIAL_DEGREE)),
-            s.cross_validated(4, lambda x: x.lsr_fn(UNKNOWN_FUNCTION))
+            s.cross_validated(K_FOLD, lambda x: x.lsr_polynomial(1)),
+            s.cross_validated(K_FOLD, lambda x: x.lsr_polynomial(poly_degree)),
+            s.cross_validated(K_FOLD, lambda x: x.lsr_fn(unknown_fn))
         ]
         bests.append(min(results, key=lambda r: r.cv_error))
-    bests_flat: [LsrResult] = list(map(lambda x: x.lsr_result, bests))
-    return bests_flat, sum(k.ss_error for k in bests_flat)
+    total_cv_error = sum(k.cv_error for k in bests)
+    lines: [LsrResult] = list(map(lambda x: x.lsr_result, bests))
+    total_ss_error = sum(k.ss_error for k in lines)
+    return BestFitResult(lines, total_ss_error, total_cv_error)
 
 
 def main(argv: List) -> None:
@@ -233,10 +243,15 @@ def main(argv: List) -> None:
 
     (xs, ys) = load_points_from_file(file_path)
     segments = group_points_into_segments(xs, ys)
-    lines, error = compute(segments)
-    print(error)
+    result = compute(segments, POLYNOMIAL_DEGREE, UNKNOWN_FUNCTION)
+    print(result.total_ss_error)
     if plot:
-        view_data_segments(xs, ys, lines)
+        view_data_segments(xs, ys, result.lines)
+
+
+def evaluate_training_data() -> None:
+    candidate_functions = [np.sin, np.tan, np.reciprocal, np.exp, np.square]
+    candidate_polynomials = range(2, 6)
 
 
 if __name__ == "__main__":
