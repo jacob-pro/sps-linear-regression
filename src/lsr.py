@@ -8,7 +8,6 @@ from matplotlib import pyplot as plt
 from numpy import ndarray
 from dataclasses import dataclass
 from abc import abstractmethod, ABC
-import random
 
 POLYNOMIAL_DEGREE = 3
 UNKNOWN_FUNCTION = np.sin
@@ -57,6 +56,16 @@ def group_points_into_segments(xs: ndarray, ys: ndarray) -> List[Segment]:
     xs_split = np.split(np.array(xs), lines)
     ys_split = np.split(np.array(ys), lines)
     return list(map(lambda line: (Segment(xs_split[line], ys_split[line])), range(lines)))
+
+
+def ss_error(y_hat: ndarray, y: ndarray) -> float:
+    return float(np.sum((y_hat - y) ** 2))
+
+
+@dataclass()
+class ValidatedLsrResult:
+    lsr_result: LsrResult
+    cv_error: float
 
 
 @dataclass()
@@ -146,22 +155,22 @@ class Segment:
 
     @classmethod
     def from_points(cls, points: List[Point]):
-        xs = ndarray(map(lambda p: p.x, points))
-        ys = ndarray(map(lambda p: p.x, points))
+        xs = np.asarray(list(map(lambda p: p.x, points)))
+        ys = np.asarray(list(map(lambda p: p.y, points)))
         return Segment(xs, ys)
 
     def to_points(self) -> List[Point]:
         return list(map(lambda i: (Segment.Point(self.xs[i], self.ys[i])), range(len(self.xs))))
 
     def split(self, k: int) -> List[SplitSegment]:
-        shuffled: List[Segment.Point] = random.sample(self.to_points())
-        validation_size = len(shuffled) // k
+        points: List[Segment.Point] = self.to_points()
+        validation_size = len(points) // k
         split_segments: List[SplitSegment] = []
         for i in range(k):
-            validation = shuffled[:validation_size]
-            training = shuffled[validation_size:]
+            validation = points[:validation_size]
+            training = points[validation_size:]
             split_segments.append(SplitSegment(Segment.from_points(training), Segment.from_points(validation)))
-            np.roll(shuffled, validation_size)
+            np.roll(points, validation_size)
         return split_segments
 
     def lsr_fn(self, fn: Callable) -> LsrResult:
@@ -169,7 +178,7 @@ class Segment:
         v = np.linalg.inv(x_e.T.dot(x_e)).dot(x_e.T).dot(self.ys)
         a, b = v
         y_hat = a + b * fn(self.xs)
-        e = float(np.sum((y_hat - self.ys) ** 2))
+        e = ss_error(y_hat, self.ys)
         return LsrResultFn(e, a, b, fn)
 
     def lsr_polynomial(self, degree: int) -> LsrResult:
@@ -178,20 +187,31 @@ class Segment:
         x_e = np.column_stack(columns)
         v = np.linalg.inv(x_e.T.dot(x_e)).dot(x_e.T).dot(self.ys)
         y_hat = np.polyval(np.flip(v), self.xs)
-        e = float(np.sum((y_hat - self.ys) ** 2))
+        e = ss_error(y_hat, self.ys)
         return LsrResultPoly(e, v)
+
+    def cross_validated(self, k: int, fn: Callable[[Segment], LsrResult]) -> ValidatedLsrResult:
+        ks: List[SplitSegment] = self.split(k)
+        errors = []
+        for ss in ks:
+            lsr_result = fn(ss.training)
+            y_hat = lsr_result.compute_for_x(ss.validation.xs)
+            errors.append(ss_error(y_hat, ss.validation.ys))
+        avg_error = float(np.mean(errors))
+        return ValidatedLsrResult(fn(self), avg_error)
 
 
 def compute(segments: List[Segment]) -> Tuple[List[LsrResult], float]:
-    bests = []
+    bests: List[ValidatedLsrResult] = []
     for s in segments:
-        results: List[LsrResult] = [
-            s.lsr_polynomial(1),
-            s.lsr_polynomial(POLYNOMIAL_DEGREE),
-            s.lsr_fn(UNKNOWN_FUNCTION),
+        results: List[ValidatedLsrResult] = [
+            s.cross_validated(4, lambda x: x.lsr_polynomial(1)),
+            s.cross_validated(4, lambda x: x.lsr_polynomial(POLYNOMIAL_DEGREE)),
+            s.cross_validated(4, lambda x: x.lsr_fn(UNKNOWN_FUNCTION))
         ]
-        bests.append(min(results, key=lambda r: r.ss_error))
-    return bests, sum(k.ss_error for k in bests)
+        bests.append(min(results, key=lambda r: r.cv_error))
+    bests_flat: [LsrResult] = list(map(lambda x: x.lsr_result, bests))
+    return bests_flat, sum(k.ss_error for k in bests_flat)
 
 
 def main(argv: List) -> None:
