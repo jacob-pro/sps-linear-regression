@@ -8,6 +8,7 @@ from matplotlib import pyplot as plt
 from numpy import ndarray
 from dataclasses import dataclass
 from abc import abstractmethod, ABC
+import unittest
 
 POLYNOMIAL_DEGREE = 2
 UNKNOWN_FUNCTION = np.sin
@@ -144,16 +145,17 @@ class SplitSegment:
     validation: Segment
 
 
+@dataclass()
+class Point:
+    x: float
+    y: float
+
+
 # A segment of a line
 @dataclass()
 class Segment:
     xs: ndarray
     ys: ndarray
-
-    @dataclass()
-    class Point:
-        x: float
-        y: float
 
     @classmethod
     def from_points(cls, points: ndarray):
@@ -162,7 +164,7 @@ class Segment:
         return Segment(xs, ys)
 
     def to_points(self) -> List[Point]:
-        return list(map(lambda i: (Segment.Point(self.xs[i], self.ys[i])), range(len(self.xs))))
+        return list(map(lambda i: (Point(self.xs[i], self.ys[i])), range(len(self.xs))))
 
     def split(self, k: int) -> List[SplitSegment]:
         points: ndarray = np.asarray(self.to_points())
@@ -273,3 +275,27 @@ def evaluate_training_data() -> None:
 if __name__ == "__main__":
     # evaluate_training_data()
     main(sys.argv)
+
+
+class TestSegment(unittest.TestCase):
+
+    def test_from_points(self):
+        points = [Point(1, -1), Point(2, -2), Point(3, -3)]
+        s = Segment.from_points(np.asarray(points))
+        np.testing.assert_array_equal([1, 2, 3], s.xs)
+        np.testing.assert_array_equal([-1, -2, -3], s.ys)
+
+    def test_to_points(self):
+        pass
+
+    def test_split(self):
+        pass
+
+    def test_lsr_fn(self):
+        pass
+
+    def test_lsr_polynomial(self):
+        pass
+
+    def test_cross_validated(self):
+        pass
