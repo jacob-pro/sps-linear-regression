@@ -174,7 +174,7 @@ class Segment:
             validation = points[:validation_size]
             training = points[validation_size:]
             split_segments.append(SplitSegment(Segment.from_points(training), Segment.from_points(validation)))
-            points = np.roll(points, validation_size)
+            points = np.roll(points, -validation_size)
         return split_segments
 
     def lsr_fn(self, fn: Callable) -> LsrResult:
@@ -279,17 +279,25 @@ if __name__ == "__main__":
 
 class TestSegment(unittest.TestCase):
 
-    def test_from_points(self):
+    def test_from_points_to_points(self):
         points = [Point(1, -1), Point(2, -2), Point(3, -3)]
         s = Segment.from_points(np.asarray(points))
         np.testing.assert_array_equal([1, 2, 3], s.xs)
         np.testing.assert_array_equal([-1, -2, -3], s.ys)
-
-    def test_to_points(self):
-        pass
+        np.testing.assert_array_equal(s.to_points(), points)
 
     def test_split(self):
-        pass
+        points = [Point(1, -1), Point(2, -2), Point(3, -3), Point(4, -4)]
+        s = Segment.from_points(np.asarray(points))
+        split: List[SplitSegment] = s.split(4)
+        self.assertEqual(4, len(split))
+        for x in split:
+            self.assertEqual(len(x.training.xs), 3)
+            self.assertEqual(len(x.validation.xs), 1)
+        all_validation = list(map(lambda x: x.validation.xs[0], split))
+        np.testing.assert_array_equal([1, 2, 3, 4], all_validation)
+        all_training_sets = list(map(lambda x: tuple(x.training.xs.tolist()), split))
+        self.assertEqual(len(all_training_sets), len(set(all_training_sets)))
 
     def test_lsr_fn(self):
         pass
