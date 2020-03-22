@@ -306,7 +306,7 @@ class TestSegment(unittest.TestCase):
         s = Segment.from_points(np.asarray(points))
         ln = s.lsr_fn(np.log)
         self.assertEqual(ln.equation(), "4.93 + 3.03*log(x)")
-        self.assertAlmostEquals(ln.ss_error, 0.03148, 5)
+        self.assertAlmostEqual(ln.ss_error, 0.03148, 5)
 
     def test_lsr_polynomial(self):
         points = [Point(1, 5), Point(2, 7), Point(4, 9), Point(10, 12)]
@@ -319,4 +319,21 @@ class TestSegment(unittest.TestCase):
         self.assertAlmostEqual(cubic.ss_error, 1.24487e-24, 5)
 
     def test_cross_validated(self):
-        pass
+        points = [Point(1, 5), Point(2, 7), Point(4, 9), Point(10, 12)]
+        s = Segment.from_points(np.asarray(points))
+
+        split = s.split(2)
+
+        fold1 = split[0]
+        y_hat_1 = fold1.training.lsr_polynomial(1).compute_for_x(fold1.validation.xs)
+        error_1 = ss_error(y_hat_1, fold1.validation.ys)
+
+        fold2 = split[1]
+        y_hat_2 = fold2.training.lsr_polynomial(1).compute_for_x(fold2.validation.xs)
+        error_2 = ss_error(y_hat_2, fold2.validation.ys)
+
+        total_cv_error = np.mean([error_1, error_2])
+        cvr = s.cross_validated(2, lambda x: x.lsr_polynomial(1))
+        lsr = s.lsr_polynomial(1)
+        self.assertEqual(total_cv_error, cvr.cv_error)
+        self.assertEqual(lsr.equation(), cvr.lsr_result.equation())
