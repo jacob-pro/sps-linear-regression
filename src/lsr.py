@@ -9,6 +9,7 @@ from numpy import ndarray
 from dataclasses import dataclass
 from abc import abstractmethod, ABC
 import unittest
+from unittest.mock import MagicMock
 
 POLYNOMIAL_DEGREE = 2
 UNKNOWN_FUNCTION = np.sin
@@ -212,13 +213,13 @@ class BestFitResult:
     total_cv_error: float
 
 
-def compute(segments: List[Segment], poly_degree: int, unknown_fn: Callable) -> BestFitResult:
+def compute(segments: List[Segment], k_fold: int, poly_degree: int, unknown_fn: Callable) -> BestFitResult:
     bests: List[ValidatedLsrResult] = []
     for s in segments:
         results: List[ValidatedLsrResult] = [
-            s.cross_validated(K_FOLD, lambda x: x.lsr_polynomial(1)),
-            s.cross_validated(K_FOLD, lambda x: x.lsr_polynomial(poly_degree)),
-            s.cross_validated(K_FOLD, lambda x: x.lsr_fn(unknown_fn))
+            s.cross_validated(k_fold, lambda x: x.lsr_polynomial(1)),
+            s.cross_validated(k_fold, lambda x: x.lsr_polynomial(poly_degree)),
+            s.cross_validated(k_fold, lambda x: x.lsr_fn(unknown_fn))
         ]
         bests.append(min(results, key=lambda r: r.cv_error))
     total_cv_error = sum(k.cv_error for k in bests)
@@ -245,7 +246,7 @@ def main(argv: List) -> None:
 
     (xs, ys) = load_points_from_file(file_path)
     segments = group_points_into_segments(xs, ys)
-    result = compute(segments, POLYNOMIAL_DEGREE, UNKNOWN_FUNCTION)
+    result = compute(segments, K_FOLD, POLYNOMIAL_DEGREE, UNKNOWN_FUNCTION)
     print(result.total_ss_error)
     if plot:
         view_data_segments(xs, ys, result.lines)
@@ -265,7 +266,7 @@ def evaluate_training_data() -> None:
     results = []
     for f in candidate_functions:
         for p in candidate_polynomials:
-            result = compute(all_segments, p, f)
+            result = compute(all_segments, K_FOLD, p, f)
             results.append((result.total_cv_error, p, f))
     results.sort(key= lambda x: x[0])
     for r in results:
@@ -337,3 +338,37 @@ class TestSegment(unittest.TestCase):
         lsr = s.lsr_polynomial(1)
         self.assertEqual(total_cv_error, cvr.cv_error)
         self.assertEqual(lsr.equation(), cvr.lsr_result.equation())
+
+
+class TestCompute(unittest.TestCase):
+
+    @dataclass()
+    class LsrResultEmpty(LsrResult):
+
+        def compute_for_x(self, x: ndarray) -> ndarray:
+            pass
+
+        def name(self) -> str:
+            pass
+
+        def equation(self) -> str:
+            pass
+
+    def test_compute(self):
+
+        segment1 = Segment(np.asarray([]), np.asarray([]))
+        segment1lsr = self.LsrResultEmpty(30)
+        segment1.cross_validated = MagicMock(side_effect=[ValidatedLsrResult(self.LsrResultEmpty(554), 554),
+                                                          ValidatedLsrResult(self.LsrResultEmpty(443), 443),
+                                                          ValidatedLsrResult(segment1lsr, 30)])
+
+        segment2 = Segment(np.asarray([]), np.asarray([]))
+        segment2lsr = self.LsrResultEmpty(35)
+        segment2.cross_validated = MagicMock(side_effect=[ValidatedLsrResult(self.LsrResultEmpty(899), 899),
+                                                          ValidatedLsrResult(segment2lsr, 10),
+                                                          ValidatedLsrResult(self.LsrResultEmpty(991), 991)])
+
+        r = compute([segment1, segment2], K_FOLD, POLYNOMIAL_DEGREE, UNKNOWN_FUNCTION)
+        self.assertEqual(r.total_ss_error, 30 + 35)
+        self.assertEqual(r.total_cv_error, 30 + 10)
+        np.testing.assert_array_equal([segment1lsr, segment2lsr], r.lines)
