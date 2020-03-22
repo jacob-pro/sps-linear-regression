@@ -136,7 +136,7 @@ class LsrResultFn(LsrResult):
         return self.a + self.b * self.function(x)
 
     def equation(self) -> str:
-        return "{} {} * {}(x)".format(self.fts(self.a), self.fts(self.b), self.function.__name__)[2:]
+        return "{} {}*{}(x)".format(self.fts(self.a), self.fts(self.b), self.function.__name__)[2:]
 
 
 @dataclass()
@@ -259,7 +259,7 @@ def evaluate_training_data() -> None:
         (xs, ys) = load_points_from_file("train_data/{}".format(f))
         all_segments.extend(group_points_into_segments(xs, ys))
 
-    candidate_functions = [np.sin, np.cos, np.tan, np.reciprocal, np.exp, np.square, np.sqrt]
+    candidate_functions = [np.sin, np.cos, np.tan, np.reciprocal, np.exp, np.square, np.sqrt, np.log]
     candidate_polynomials = range(2, 6)
 
     results = []
@@ -294,16 +294,29 @@ class TestSegment(unittest.TestCase):
         for x in split:
             self.assertEqual(len(x.training.xs), 3)
             self.assertEqual(len(x.validation.xs), 1)
+        # Check that 4 different validation points are chosen
         all_validation = list(map(lambda x: x.validation.xs[0], split))
         np.testing.assert_array_equal([1, 2, 3, 4], all_validation)
+        # Check that all 4 training sets are different
         all_training_sets = list(map(lambda x: tuple(x.training.xs.tolist()), split))
         self.assertEqual(len(all_training_sets), len(set(all_training_sets)))
 
     def test_lsr_fn(self):
-        pass
+        points = [Point(1, 5), Point(2, 7), Point(4, 9), Point(10, 12)]
+        s = Segment.from_points(np.asarray(points))
+        ln = s.lsr_fn(np.log)
+        self.assertEqual(ln.equation(), "4.93 + 3.03*log(x)")
+        self.assertAlmostEquals(ln.ss_error, 0.03148, 5)
 
     def test_lsr_polynomial(self):
-        pass
+        points = [Point(1, 5), Point(2, 7), Point(4, 9), Point(10, 12)]
+        s = Segment.from_points(np.asarray(points))
+        linear = s.lsr_polynomial(1)
+        self.assertEqual(linear.equation(), "5.22 + 0.71*x")
+        self.assertAlmostEqual(linear.ss_error, 1.97949, 5)
+        cubic = s.lsr_polynomial(3)
+        self.assertEqual(cubic.equation(), "2.09 + 3.42*x - 0.54*x^2 + 0.03*x^3")
+        self.assertAlmostEqual(cubic.ss_error, 1.24487e-24, 5)
 
     def test_cross_validated(self):
         pass
