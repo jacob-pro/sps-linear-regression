@@ -1,15 +1,17 @@
 from __future__ import annotations
+
+import argparse
 import os
-import sys
-import pandas as pd
-import numpy as np
+import unittest
+from abc import abstractmethod, ABC
+from dataclasses import dataclass
 from typing import *
+from unittest.mock import MagicMock
+
+import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 from numpy import ndarray
-from dataclasses import dataclass
-from abc import abstractmethod, ABC
-import unittest
-from unittest.mock import MagicMock
 
 POLYNOMIAL_DEGREE = 2
 UNKNOWN_FUNCTION = np.sin
@@ -27,12 +29,13 @@ def load_points_from_file(filename: str) -> Tuple[ndarray, ndarray]:
     return points[0].values, points[1].values
 
 
-def view_data_segments(xs: ndarray, ys: ndarray, lines: List[LsrResult]) -> None:
+def view_data_segments(xs: ndarray, ys: ndarray, lines: List[LsrResult], print_eq: bool) -> None:
     """Visualises the input file with each segment plotted in a different colour.
     Args:
         xs : List/array-like of x co-ordinates.
         ys : List/array-like of y co-ordinates.
-        lines: List of lines to plot
+        lines:
+        print_eq:
     Returns:
         None
     """
@@ -48,7 +51,11 @@ def view_data_segments(xs: ndarray, ys: ndarray, lines: List[LsrResult]) -> None
         x = np.linspace(xs[20 * idx], xs[20 * (idx + 1) - 1])
         y = line.compute_for_x(x)
         plt.plot(x, y, linestyle="solid")
-        # print(line.name(), line.equation())
+
+    if print_eq:
+        name_col = list(map(lambda z: z.name(), lines))
+        eq_col = list(map(lambda z: z.equation(), lines))
+        print("\n", pd.DataFrame(np.column_stack([name_col, eq_col]), range(1, len(lines) + 1), ['Type', 'Equation']))
 
     plt.show()
 
@@ -228,30 +235,6 @@ def compute(segments: List[Segment], k_fold: int, poly_degree: int, unknown_fn: 
     return BestFitResult(lines, total_ss_error, total_cv_error)
 
 
-def main(argv: List) -> None:
-    if len(argv) < 2 or len(argv) > 3:
-        print("Incorrect number of arguments")
-        exit(1)
-    file_path = argv[1]
-    if not os.path.isfile(file_path):
-        print("Invalid file path")
-        exit(1)
-    plot = False
-    if len(argv) == 3:
-        if argv[2] == "--plot":
-            plot = True
-        else:
-            print("Unrecognised argument")
-            exit(1)
-
-    (xs, ys) = load_points_from_file(file_path)
-    segments = group_points_into_segments(xs, ys)
-    result = compute(segments, K_FOLD, POLYNOMIAL_DEGREE, UNKNOWN_FUNCTION)
-    print(result.total_ss_error)
-    if plot:
-        view_data_segments(xs, ys, result.lines)
-
-
 def evaluate_training_data() -> None:
     # Get all line segments from all training files
     training_files = list(filter(lambda x: x.endswith(".csv"), os.listdir("train_data")))
@@ -274,8 +257,26 @@ def evaluate_training_data() -> None:
 
 
 if __name__ == "__main__":
-    # evaluate_training_data()
-    main(sys.argv)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('file_path', type=str, help='path to the input file')
+    parser.add_argument('--plot', action='store_true', help='plot the result')
+    parser.add_argument('--print', action='store_true', help='print the equations')
+    parser.add_argument('--evaluate', action='store_true', help='evaluate all training data')
+    args = parser.parse_args()
+
+    if args.evaluate:
+        evaluate_training_data()
+    else:
+        if not os.path.isfile(args.file_path):
+            print("Invalid file path")
+            exit(1)
+        (xs, ys) = load_points_from_file(args.file_path)
+        segments = group_points_into_segments(xs, ys)
+        result = compute(segments, K_FOLD, POLYNOMIAL_DEGREE, UNKNOWN_FUNCTION)
+        print(result.total_ss_error)
+        if args.plot:
+            view_data_segments(xs, ys, result.lines, args.print)
 
 
 class TestSegment(unittest.TestCase):
