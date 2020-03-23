@@ -153,36 +153,29 @@ class SplitSegment:
     validation: Segment
 
 
-@dataclass()
-class Point:
-    x: float
-    y: float
-
-
 # A segment of a line
-@dataclass()
 class Segment:
     xs: ndarray
     ys: ndarray
 
-    @classmethod
-    def from_points(cls, points: ndarray):
-        xs = np.asarray(list(map(lambda p: p.x, points)))
-        ys = np.asarray(list(map(lambda p: p.y, points)))
-        return Segment(xs, ys)
-
-    def to_points(self) -> List[Point]:
-        return list(map(lambda i: (Point(self.xs[i], self.ys[i])), range(len(self.xs))))
+    def __init__(self, xs: ndarray, ys: ndarray):
+        assert len(xs) == len(ys)
+        self.xs = xs
+        self.ys = ys
 
     def split(self, k: int) -> List[SplitSegment]:
-        points: ndarray = np.asarray(self.to_points())
-        validation_size = len(points) // k
+        xs = self.xs
+        ys = self.ys
+        validation_size = len(xs) // k
         split_segments: List[SplitSegment] = []
         for i in range(k):
-            validation = points[:validation_size]
-            training = points[validation_size:]
-            split_segments.append(SplitSegment(Segment.from_points(training), Segment.from_points(validation)))
-            points = np.roll(points, -validation_size)
+            validation_xs = xs[:validation_size]
+            validation_ys = ys[:validation_size]
+            training_xs = xs[validation_size:]
+            training_ys = ys[validation_size:]
+            split_segments.append(SplitSegment(Segment(training_xs, training_ys), Segment(validation_xs, validation_ys)))
+            xs = np.roll(xs, -validation_size)
+            ys = np.roll(ys, -validation_size)
         return split_segments
 
     def lsr_fn(self, fn: Callable) -> LsrResult:
@@ -281,16 +274,8 @@ if __name__ == "__main__":
 
 class TestSegment(unittest.TestCase):
 
-    def test_from_points_to_points(self):
-        points = [Point(1, -1), Point(2, -2), Point(3, -3)]
-        s = Segment.from_points(np.asarray(points))
-        np.testing.assert_array_equal([1, 2, 3], s.xs)
-        np.testing.assert_array_equal([-1, -2, -3], s.ys)
-        np.testing.assert_array_equal(s.to_points(), points)
-
     def test_split(self):
-        points = [Point(1, -1), Point(2, -2), Point(3, -3), Point(4, -4)]
-        s = Segment.from_points(np.asarray(points))
+        s = Segment(np.asarray([1, 2, 3, 4]), np.asarray([-1, -2, -3, -4]))
         split: List[SplitSegment] = s.split(4)
         self.assertEqual(4, len(split))
         for x in split:
@@ -304,15 +289,13 @@ class TestSegment(unittest.TestCase):
         self.assertEqual(len(all_training_sets), len(set(all_training_sets)))
 
     def test_lsr_fn(self):
-        points = [Point(1, 5), Point(2, 7), Point(4, 9), Point(10, 12)]
-        s = Segment.from_points(np.asarray(points))
+        s = Segment(np.asarray([1, 2, 4, 10]), np.asarray([5, 7, 9, 12]))
         ln = s.lsr_fn(np.log)
         self.assertEqual(ln.equation(), "4.93 + 3.03*log(x)")
         self.assertAlmostEqual(ln.ss_error, 0.03148, 5)
 
     def test_lsr_polynomial(self):
-        points = [Point(1, 5), Point(2, 7), Point(4, 9), Point(10, 12)]
-        s = Segment.from_points(np.asarray(points))
+        s = Segment(np.asarray([1, 2, 4, 10]), np.asarray([5, 7, 9, 12]))
         linear = s.lsr_polynomial(1)
         self.assertEqual(linear.equation(), "5.22 + 0.71*x")
         self.assertAlmostEqual(linear.ss_error, 1.97949, 5)
@@ -321,8 +304,7 @@ class TestSegment(unittest.TestCase):
         self.assertAlmostEqual(cubic.ss_error, 1.24487e-24, 5)
 
     def test_cross_validated(self):
-        points = [Point(1, 5), Point(2, 7), Point(4, 9), Point(10, 12)]
-        s = Segment.from_points(np.asarray(points))
+        s = Segment(np.asarray([1, 2, 4, 10]), np.asarray([5, 7, 9, 12]))
 
         split = s.split(2)
 
