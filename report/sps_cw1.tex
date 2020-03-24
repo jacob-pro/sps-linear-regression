@@ -102,9 +102,9 @@ The \lstinline|compute()| function is used to find the best fitting function for
 
 \begin{figure}
 	\centering
-	\subfloat[Minimum CVE: Linear]{{\includegraphics[width=6cm]{noise_1_min_cve} }}
+	\subfloat[Minimum CVE: Linear]{{\includegraphics[width=7.6cm]{noise_1_min_cve} }}
 	\qquad
-	\subfloat[Minimum SSE: Cubic]{{\includegraphics[width=6cm]{noise_1_min_sse} }}
+	\subfloat[Minimum SSE: Cubic]{{\includegraphics[width=7.6cm]{noise_1_min_sse} }}
 	\caption{\lstinline|noise_1.csv| computed with different minimums}
 	\label{fig:noise_1}
 \end{figure}
@@ -114,7 +114,6 @@ The \lstinline|compute()| function is used to find the best fitting function for
 To verify that the mathematical calculations have been implemented correctly, I have written tests using the \lstinline|unittest| framework from the Python standard library \cite{unittest}. I obtained test data for the regressions and sum square error using a \textit{TI-Nspire} graphing calculator. There is complete test coverage of the \lstinline|Segment| class and \lstinline|compute()| function.
 
 
-\pagebreak
 \section{Training Data}
 
 The final part of the task was to establish which polynomial degree and which unknown function were used in the training data. To do so I have written the \lstinline|evaluate_training_data()| function, which can be executed by running the script with the \lstinline|--evaluate| switch. I have defined a range of polynomials from quadratic to sixth degree, and a range of candidates for the unknown function including $sin$, $cos$, $tan$, $reciprocal$, $exp$, $log$, $square$ and $sqrt$. The evaluation iterates over all possible combinations of polynomial and unknown function, applying the \lstinline|compute()| function to all training segments, totalling the cross validation error from each segment.
