@@ -52,7 +52,7 @@
 	
 \section{Least Squares Regression}
 
-The least squares calculations have been implemented in the \lstinline|Segment| methods \lstinline|lsr_polynomial| and \lstinline|lsr_fn|.
+The least squares calculations have been implemented in the \lstinline|Segment| methods \lstinline|lsr_polynomial()| and \lstinline|lsr_fn()|.
 They both use the matrix formula: \cite{wolfram_ls_poly}
 
 \[\bm{A}=(\bm{X}^{T}\bm{X})^{-1}\bm{X}^{T}\bm{Y}\]
@@ -88,15 +88,22 @@ The Sum Squared Error (SSE) is a method of measuring how well a fitted function 
 
 \[SSE = \sum_{i=0}^{n} ( y_{i} - f(x_{i}) )^{2}\]
 
-This has been implemented in the \lstinline|ss_error| function, which is called with an array of predicted $y$ values, and array of actual $y$ values.
+This has been implemented in the \lstinline|ss_error()| function, which is called with an array of predicted $y$ values, and array of actual $y$ values.
 
-\section{K-Fold Validation}
+\section{Overfitting}
 
+Whilst choosing the function with the lowest SSE will find the best fit for the given dataset, it does not prevent overfitting, a type of error where the model fits too closely to the noise in the data, and is therefore unable to accurately predict additional observations. In our case this can be caused by selecting a function class too complex, such as a higher degree polynomial than the real function. Cross validation is a technique that can be used to detect this, first we split the data into training and validation sets, then fit a function to the training data, and finally measure the SSE of the validation data when using the fitted function, giving us the cross validation error \cite{lecture_overfitting}.
+
+K-Fold cross validation is a method of applying cross validation repeatedly across different combinations of training and validation data. To do so we split our data into $K$ equally sized chunks, for $1..K$ each chunk is used as a validation set, and the other chunks form the training set \cite{k_fold_validation}. This has been implemented by the \lstinline|Segment| \lstinline|split()| method which returns a list of training/validation pairs, $K$ long, which is in turn called by the \lstinline|cross_validated()| method which computes the mean validation error for each of the pairs.
+
+\section{Method}
 
 \section{Testing}
 
 
 \section{Training Data}
+
+The training data can be evaluated by passing the \lstinline|--evaluate| switch to the script.
 
 
 \printbibliography
