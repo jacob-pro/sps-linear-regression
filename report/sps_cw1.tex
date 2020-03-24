@@ -18,6 +18,28 @@
 \usepackage{subfig}
 %Per page footnote numbering
 \usepackage[perpage]{footmisc}
+% Maths
+\usepackage{amsmath}
+\usepackage{bm}
+
+%Code formatting
+\usepackage{listings}
+\usepackage{xcolor}
+\definecolor{code-comment}{rgb}{0,0.6,0}
+\definecolor{code-string}{rgb}{0.58,0,0.82}
+\lstset{
+	frame=tb,
+	language=Python,
+	keywordstyle=\color{blue},
+	stringstyle=\color{code-string},
+	commentstyle=\color{code-comment},
+	tabsize=4,
+	basicstyle={\small\ttfamily},
+	showstringspaces=false,
+	breaklines=true,
+	aboveskip=3mm,
+	belowskip=0mm,
+}
 
 \title{An Unknown Signal}
 \subtitle{Symbols, Patterns and Signals}
@@ -30,6 +52,35 @@
 	
 \section{Least Squares Regression}
 
+The least squares calculations have been implemented in the \lstinline|Segment| methods \lstinline|lsr_polynomial| and \lstinline|lsr_fn|.
+They both use the matrix formula \cite{wolfram_ls_poly}:
+
+\[\bm{A}=(\bm{X}^{T}\bm{X})^{-1}\bm{X}^{T}\bm{Y}\]
+
+Where in the case of the polynomial regression:
+
+\[
+\bm{X} = \begin{bmatrix}
+1 & x_{0} & \left (x_{0}  \right )^{2} & .. & \left (x_{0}  \right )^{k} \\ 
+1 & x_{1} & \left (x_{1}  \right )^{2} & .. & \left (x_{1}  \right )^{k} \\ 
+.. & .. & .. & .. \\ 
+1 & x_{k} & \left (x_{k}  \right )^{2} & .. & \left (x_{k}  \right )^{k}
+\end{bmatrix}\]
+
+Or in the case of the unknown function $f$ regression:
+\[
+\bm{X} = 
+\begin{bmatrix}
+1 & f\left (x_{0}  \right ) \\ 
+1 & f\left (x_{1}  \right ) \\ 
+.. & .. \\ 
+1 & f\left (x_{k}  \right )
+\end{bmatrix}
+\]
+
+$\bm{Y}$ is a vector containing the $y$ values $y_{0}$ through to $y_{k}$
+
+And the result $\bm{A}$ is the list of coefficients, in the order $a_{0} + a_{1}x + .. + a_{k}x^{k}$ or $a_{0} + a_{1}f(x)$.
 
 \section{K-Fold Validation}
 
