@@ -10,7 +10,7 @@
 % Header
 \usepackage{fancyhdr}
 \pagestyle{fancy}
-\lhead{COMS21202 CW1}
+\lhead{COMS21202 Symbols, Patterns and Signals - CW1}
 \rhead{}
 %Figures
 \usepackage{graphicx}
@@ -114,9 +114,21 @@ The \lstinline|compute()| function is used to find the best fitting function for
 To verify that the mathematical calculations have been implemented correctly, I have written tests using the \lstinline|unittest| framework from the Python standard library \cite{unittest}. I obtained test data for the regressions and sum square error using a \textit{TI-Nspire} graphing calculator. There is complete test coverage of the \lstinline|Segment| class and \lstinline|compute()| function.
 
 
+\pagebreak
 \section{Training Data}
 
-The training data can be evaluated by passing the \lstinline|--evaluate| switch to the script.
+The final part of the task was to establish which polynomial degree and which unknown function were used in the training data. To do so I have written the \lstinline|evaluate_training_data()| function, which can be executed by running the script with the \lstinline|--evaluate| switch. I have defined a range of polynomials from quadratic to sixth degree, and a range of candidates for the unknown function including $sin$, $cos$, $tan$, $reciprocal$, $exp$, $log$, $square$ and $sqrt$. The evaluation iterates over all possible combinations of polynomial and unknown function, applying the \lstinline|compute()| function to all training segments, totalling the cross validation error from each segment.
+
+The results in ascending order were as follows:
+
+\begin{lstlisting}
+	Total CV Error: 1364.7933944444837, Polynomial Degree: 2, Function: sin
+	Total CV Error: 7417.386188226556, Polynomial Degree: 3, Function: sin
+	Total CV Error: 92417.36032612705, Polynomial Degree: 3, Function: cos
+	...
+\end{lstlisting}
+
+I therefore believe that the quadratic polynomial and $sin$ function were used when generating the training data. I have defined them as constants which will now be used when script is run on a \lstinline|csv| file.
 
 
 \printbibliography
