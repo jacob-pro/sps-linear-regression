@@ -53,7 +53,7 @@
 \section{Least Squares Regression}
 
 The least squares calculations have been implemented in the \lstinline|Segment| methods \lstinline|lsr_polynomial| and \lstinline|lsr_fn|.
-They both use the matrix formula \cite{wolfram_ls_poly}:
+They both use the matrix formula: \cite{wolfram_ls_poly}
 
 \[\bm{A}=(\bm{X}^{T}\bm{X})^{-1}\bm{X}^{T}\bm{Y}\]
 
@@ -67,7 +67,7 @@ Where in the case of the polynomial regression:
 1 & x_{k} & \left (x_{k}  \right )^{2} & .. & \left (x_{k}  \right )^{k}
 \end{bmatrix}\]
 
-Or in the case of the unknown function $f$ regression:
+Or in the case of the arbitrary function ($f$) regression:
 \[
 \bm{X} = 
 \begin{bmatrix}
@@ -81,6 +81,14 @@ Or in the case of the unknown function $f$ regression:
 $\bm{Y}$ is a vector containing the $y$ values $y_{0}$ through to $y_{k}$
 
 And the result $\bm{A}$ is the list of coefficients, in the order $a_{0} + a_{1}x + .. + a_{k}x^{k}$ or $a_{0} + a_{1}f(x)$.
+
+\subsection*{Calculating the Error}
+
+The Sum Squared Error (SSE) is a method of measuring how well a fitted function ($f$) fits a dataset of $n$ points, by calculating the difference between the predicted and actual data. \cite{wolfram_ls_fitting}
+
+\[SSE = \sum_{i=0}^{n} ( y_{i} - f(x_{i}) )^{2}\]
+
+This has been implemented in the \lstinline|ss_error| function, which is called with an array of predicted $y$ values, and array of actual $y$ values.
 
 \section{K-Fold Validation}
 
