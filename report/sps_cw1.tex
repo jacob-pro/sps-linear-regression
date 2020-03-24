@@ -92,11 +92,22 @@ This has been implemented in the \lstinline|ss_error()| function, which is calle
 
 \section{Overfitting}
 
-Whilst choosing the function with the lowest SSE will find the best fit for the given dataset, it does not prevent overfitting, a type of error where the model fits too closely to the noise in the data, and is therefore unable to accurately predict additional observations. In our case this can be caused by selecting a function class too complex, such as a higher degree polynomial than the real function. Cross validation is a technique that can be used to detect this, first we split the data into training and validation sets, then fit a function to the training data, and finally measure the SSE of the validation data when using the fitted function, giving us the cross validation error \cite{lecture_overfitting}.
+Whilst choosing the function with the lowest SSE will find the best fit for the given dataset, it does not prevent overfitting, a type of error where the model fits too closely to the noise in the data, and is therefore unable to accurately predict additional observations. In our case this can be caused by selecting a function class too complex, such as a higher order polynomial than the real function. Cross validation is a technique that can be used to detect this, first we split the data into training and validation sets, then fit a function to the training data, and finally measure the SSE of the validation data when using the fitted function, giving us the cross validation error \cite{lecture_overfitting}.
 
-K-Fold cross validation is a method of applying cross validation repeatedly across different combinations of training and validation data. To do so we split our data into $K$ equally sized chunks, for $1..K$ each chunk is used as a validation set, and the other chunks form the training set \cite{k_fold_validation}. This has been implemented by the \lstinline|Segment| \lstinline|split()| method which returns a list of training/validation pairs, $K$ long, which is in turn called by the \lstinline|cross_validated()| method which computes the mean validation error for each of the pairs.
+K-Fold cross validation is a method of applying cross validation repeatedly across different combinations of training and validation data. To do so we split our data into $K$ equally sized chunks, for $1..K$ each chunk is used as a validation set, and the other chunks form the training set \cite{k_fold_validation}. This has been implemented by the \lstinline|Segment| \lstinline|split()| method which returns a list of unique training/validation pairs of length $K$. This in turn is called by the \lstinline|cross_validated()| method which computes the mean validation error (CVE) for each of the pairs.
 
 \section{Method}
+
+The \lstinline|compute()| function is used to find the best fitting function for a segment out of three choices: a linear function, a polynomial of given degree, or a specified custom function. To prevent overfitting it selects the function with the minimum k-fold cross validation. The importance of this is demonstrated by figure \ref{fig:noise_1}, which shows that if we just use the minimum SSE, a higher order polynomial will be incorrectly favoured instead of a linear function; due to the noise in the data.
+
+\begin{figure}
+	\centering
+	\subfloat[Minimum CVE: Linear]{{\includegraphics[width=6cm]{noise_1_min_cve} }}
+	\qquad
+	\subfloat[Minimum SSE: Cubic]{{\includegraphics[width=6cm]{noise_1_min_sse} }}
+	\caption{\lstinline|noise_1.csv| computed with different minimums}
+	\label{fig:noise_1}
+\end{figure}
 
 \section{Testing}
 
