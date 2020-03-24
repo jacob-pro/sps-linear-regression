@@ -13,7 +13,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from numpy import ndarray
 
-POLYNOMIAL_DEGREE = 3
+POLYNOMIAL_DEGREE = 2
 UNKNOWN_FUNCTION = np.sin
 K_FOLD = 4
 
@@ -221,7 +221,7 @@ def compute(segments: List[Segment], k_fold: int, poly_degree: int, unknown_fn: 
             s.cross_validated(k_fold, lambda x: x.lsr_polynomial(poly_degree)),
             s.cross_validated(k_fold, lambda x: x.lsr_fn(unknown_fn))
         ]
-        bests.append(min(results, key=lambda r: r.lsr_result.ss_error))
+        bests.append(min(results, key=lambda r: r.cv_error))
     total_cv_error = sum(k.cv_error for k in bests)
     lines: [LsrResult] = list(map(lambda x: x.lsr_result, bests))
     total_ss_error = sum(k.ss_error for k in lines)
