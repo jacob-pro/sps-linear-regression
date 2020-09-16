@@ -1,0 +1,19 @@
+name: Docker Image CI
+
+on: [push, pull_request]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build
+      working-directory: ./src
+      run: bash run.sh | tee result.txt
+    - uses: actions/upload-artifact@v2
+      with:
+        name: result
+        path: result.txt
